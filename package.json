@@ -1,0 +1,30 @@
+{
+  "name": "spotilyric",
+  "version": "1.0.0",
+  "description": "Vencord plugin that synchronizes your Discord custom status with real-time Spotify lyrics via LRCLIB",
+  "type": "module",
+  "main": "src/index.tsx",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "keywords": [
+    "vencord",
+    "vencord-plugin",
+    "discord",
+    "spotify",
+    "lyrics",
+    "lrclib",
+    "custom-status"
+  ],
+  "author": "exit",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
