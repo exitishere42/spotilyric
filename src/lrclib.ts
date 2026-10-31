@@ -1,29 +1,31 @@
-import { SyncedLyrics } from "./types";
 import { parseLrc } from "./parser";
-
-declare const VencordNative: any;
+import { SyncedLyrics } from "./types";
 
 interface LrcLibResponse {
-    id?: number;
-    name?: string;
-    trackName?: string;
-    artistName?: string;
-    albumName?: string;
-    duration?: number;
-    instrumental?: boolean;
-    plainLyrics?: string;
-    syncedLyrics?: string;
+    id: number;
+    name: string;
+    trackName: string;
+    artistName: string;
+    albumName: string;
+    duration: number;
+    instrumental: boolean;
+    plainLyrics: string;
+    syncedLyrics: string;
 }
 
 const cache = new Map<string, SyncedLyrics | null>();
-let mxmToken: string | null = null;
 
 export function cleanTrackTitle(title: string): string {
-    if (!title) return "";
     return title
-        .replace(/\s*-\s*(?:(?:\d{4}|\b)\s*)?(Remastered|Remaster|Live|Radio Edit|Acoustic|Bonus Track).*$/i, "")
-        .replace(/\s*\((feat\.|with|remastered|remaster|live|acoustic)[^)]*\)/i, "")
-        .replace(/\s*\[(feat\.|with|remastered|remaster|live|acoustic)[^\]]*\]/i, "")
+        .replace(/\s*-\s*\d{4}\s+Remaster(ed)?/gi, "")
+        .replace(/\s*-\s*Remaster(ed)?(\s*\d{4})?/gi, "")
+        .replace(/\s*-\s*Live(\s+at\s+.*)?/gi, "")
+        .replace(/\s*\(feat\..*?\)/gi, "")
+        .replace(/\s*\[feat\..*?\]/gi, "")
+        .replace(/\s*\(with\s+.*?\)/gi, "")
+        .replace(/\s*\[with\s+.*?\]/gi, "")
+        .replace(/\s*-\s*Single(\s+Version)?/gi, "")
+        .replace(/\s*-\s*Radio(\s+Edit)?/gi, "")
         .trim();
 }
 
@@ -69,53 +71,6 @@ async function requestLrcLib(
     }
 }
 
-async function getMusixmatchToken(): Promise<string | null> {
-    if (mxmToken) return mxmToken;
-    try {
-        const res = await fetch("https://apic-desktop.musixmatch.com/ws/1.1/token.get?app_id=web-desktop-app-v1.0");
-        if (res.ok) {
-            const data = await res.json();
-            mxmToken = data.message?.body?.user_token ?? null;
-        }
-    } catch {
-        mxmToken = null;
-    }
-    return mxmToken;
-}
-
-export async function requestMusixmatch(trackName: string, artistName: string): Promise<string | null> {
-    try {
-        const token = await getMusixmatchToken();
-        const url = new URL("https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get");
-        url.searchParams.set("format", "json");
-        url.searchParams.set("q_track", trackName);
-        url.searchParams.set("q_artist", artistName);
-        url.searchParams.set("subtitle_format", "lrc");
-        url.searchParams.set("app_id", "web-desktop-app-v1.0");
-        if (token) {
-            url.searchParams.set("usertoken", token);
-        }
-
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
-        const res = await fetch(url.toString(), { signal: controller.signal });
-        clearTimeout(timeout);
-
-        if (!res.ok) return null;
-        const data = await res.json();
-        const subtitleList = data.message?.body?.macro_calls?.["track.subtitles.get"]?.message?.body?.subtitle_list;
-        if (subtitleList && subtitleList.length > 0) {
-            const lrcBody = subtitleList[0].subtitle?.subtitle_body;
-            if (lrcBody && lrcBody.length > 10) {
-                return lrcBody;
-            }
-        }
-    } catch (err) {
-        console.warn("[Spotilyric] Musixmatch query error:", err);
-    }
-    return null;
-}
-
 export async function requestNetease(trackName: string, artistName: string): Promise<string | null> {
     try {
         const searchUrl = `https://music.163.com/api/search/get/web?csrf_token=&type=1&offset=0&limit=1&s=${encodeURIComponent(trackName + " " + artistName)}`;
@@ -151,31 +106,22 @@ export async function fetchLyrics(
     let lrcContent: string | null = null;
     let providerName = "";
 
-    // 1. If Musixmatch requested or Auto: try Musixmatch first for best accuracy
-    if (sourcePreference === "musixmatch" || sourcePreference === "auto") {
-        lrcContent = await requestMusixmatch(trackName, artistName);
-        if (!lrcContent && cleaned !== trackName) {
-            lrcContent = await requestMusixmatch(cleaned, artistName);
-        }
-        if (lrcContent) providerName = "Musixmatch";
-    }
-
-    // 2. If LRCLIB requested or Fallback
-    if (!lrcContent && (sourcePreference === "lrclib" || sourcePreference === "auto")) {
+    // 1. Primary: LRCLIB (Direct open-source synced lyrics database)
+    if (sourcePreference === "lrclib" || sourcePreference === "auto") {
         lrcContent = await requestLrcLib(trackName, artistName, albumName, durationMs);
         if (!lrcContent && cleaned !== trackName) {
             lrcContent = await requestLrcLib(cleaned, artistName, albumName, durationMs);
         }
-        if (lrcContent) providerName = "LRCLIB";
+        if (lrcContent !== null) providerName = "LRCLIB";
     }
 
-    // 3. Fallback to Netease
-    if (!lrcContent && (sourcePreference === "netease" || sourcePreference === "auto")) {
+    // 2. Fallback: Netease Cloud Music
+    if (lrcContent === null && (sourcePreference === "netease" || sourcePreference === "auto")) {
         lrcContent = await requestNetease(trackName, artistName);
         if (!lrcContent && cleaned !== trackName) {
             lrcContent = await requestNetease(cleaned, artistName);
         }
-        if (lrcContent) providerName = "Netease";
+        if (lrcContent !== null) providerName = "Netease";
     }
 
     if (lrcContent === null) {
