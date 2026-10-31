@@ -3,6 +3,10 @@ import { SpotifyTrackInfo } from "./types";
 
 let spotifyStoreCache: any = null;
 
+export function setSpotifyStoreForTesting(mockStore: any) {
+    spotifyStoreCache = mockStore;
+}
+
 function getSpotifyStore(): any {
     if (spotifyStoreCache) return spotifyStoreCache;
     try {

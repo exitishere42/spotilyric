@@ -10,7 +10,7 @@ let syncIntervalId: any = null;
 let currentTrackId: string | null = null;
 let currentLyrics: SyncedLyrics | null = null;
 
-async function onSyncTick() {
+export async function onSyncTick() {
     const track = getCurrentSpotifyTrack();
 
     // If no track is playing on Spotify
@@ -64,9 +64,10 @@ async function onSyncTick() {
     }
 }
 
-export default definePlugin({
+export const pluginDefinition = definePlugin({
     name: "Spotilyric",
     description: "Synchronizes your Discord custom status with real-time Spotify lyrics via Musixmatch and LRCLIB.",
+    dependencies: ["UserSettingsAPI"],
     authors: [
         {
             name: "exit",
@@ -98,3 +99,5 @@ export default definePlugin({
         resetStatusManagerState();
     }
 });
+
+export default pluginDefinition;

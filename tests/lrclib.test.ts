@@ -48,7 +48,7 @@ describe("LRCLIB Client & Title Cleaning", () => {
         json: async () => mockLrcResponse
       } as any);
 
-      const result = await fetchLyrics("Song", "Artist", "Album", 180000);
+      const result = await fetchLyrics("Song", "Artist", "Album", 180000, "lrclib");
       expect(result).not.toBeNull();
       expect(result?.isSynced).toBe(true);
       expect(result?.lines).toHaveLength(2);
@@ -56,7 +56,7 @@ describe("LRCLIB Client & Title Cleaning", () => {
       expect(fetchSpy).toHaveBeenCalledTimes(1);
 
       // Second call must be served from cache without extra fetch
-      const cachedResult = await fetchLyrics("Song", "Artist");
+      const cachedResult = await fetchLyrics("Song", "Artist", undefined, undefined, "lrclib");
       expect(cachedResult).toEqual(result);
       expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
@@ -70,7 +70,7 @@ describe("LRCLIB Client & Title Cleaning", () => {
         })
       } as any);
 
-      const result = await fetchLyrics("Orchestra", "Artist");
+      const result = await fetchLyrics("Orchestra", "Artist", undefined, undefined, "lrclib");
       expect(result).not.toBeNull();
       expect(result?.isSynced).toBe(false);
       expect(result?.lines).toHaveLength(0);
@@ -87,7 +87,7 @@ describe("LRCLIB Client & Title Cleaning", () => {
           })
         } as any); // 2nd try: "Song" -> success
 
-      const result = await fetchLyrics("Song (feat. X)", "Artist");
+      const result = await fetchLyrics("Song (feat. X)", "Artist", undefined, undefined, "lrclib");
       expect(fetchSpy).toHaveBeenCalledTimes(2);
       expect(result?.isSynced).toBe(true);
       expect(result?.lines[0].text).toBe("Cleaned success");

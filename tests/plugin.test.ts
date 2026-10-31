@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { onSyncTick, pluginDefinition } from "../src/index";
+import { settings } from "../src/settings";
 import { setSpotifyStoreForTesting } from "../src/spotify";
 import { setStatusAdapterForTesting, getSavedStatus, resetStatusManagerState } from "../src/statusManager";
 import { clearLyricsCache } from "../src/lrclib";
@@ -11,6 +12,10 @@ describe("Spotilyric Plugin Lifecycle & Tick", () => {
     resetStatusManagerState();
     clearLyricsCache();
     mockStatus = { text: "Previous Status", emojiName: "🎮" };
+    settings.store.displayFormat = "title_lyric";
+    settings.store.restorePreviousStatus = true;
+    settings.store.fallbackToTrackInfo = true;
+    settings.store.statusEmoji = "🎵";
 
     setStatusAdapterForTesting({
       getCurrentStatus: () => mockStatus ? { text: mockStatus.text, emoji: { name: mockStatus.emojiName } } : null,

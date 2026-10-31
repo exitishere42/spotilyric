@@ -61,6 +61,7 @@ async function requestLrcLib(
 
         if (!response.ok) return null;
         const data: LrcLibResponse = await response.json();
+        if (data.instrumental) return "";
         return data.syncedLyrics ?? null;
     } catch {
         clearTimeout(timeout);
@@ -177,7 +178,7 @@ export async function fetchLyrics(
         if (lrcContent) providerName = "Netease";
     }
 
-    if (!lrcContent) {
+    if (lrcContent === null) {
         cache.set(cacheKey, null);
         return null;
     }
