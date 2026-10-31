@@ -43,10 +43,14 @@ export async function restorePreviousStatus(): Promise<void> {
                     if (!savedStatus?.text) {
                         status.customStatus = undefined;
                     } else {
+                        const validEmojiId = savedStatus.emojiId && /^-?[0-9]+$/.test(savedStatus.emojiId)
+                            ? savedStatus.emojiId
+                            : "0";
+
                         status.customStatus = {
                             text: savedStatus.text,
                             emojiName: savedStatus.emojiName || "",
-                            emojiId: savedStatus.emojiId || "",
+                            emojiId: validEmojiId,
                             expiresAtMs: "0"
                         };
                     }
@@ -95,7 +99,7 @@ export async function updateStatus(
                 status.customStatus = {
                     text: trimmed,
                     emojiName: statusEmoji || "🎵",
-                    emojiId: "",
+                    emojiId: "0",
                     expiresAtMs: "0"
                 };
             },
