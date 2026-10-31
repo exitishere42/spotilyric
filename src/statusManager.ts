@@ -41,7 +41,7 @@ export async function restorePreviousStatus(): Promise<void> {
                 "status",
                 (status: any) => {
                     if (!savedStatus?.text) {
-                        status.customStatus = undefined;
+                        delete status.customStatus;
                     } else {
                         const validEmojiId = savedStatus.emojiId && /^-?[0-9]+$/.test(savedStatus.emojiId)
                             ? savedStatus.emojiId
@@ -57,6 +57,7 @@ export async function restorePreviousStatus(): Promise<void> {
                 },
                 0
             );
+            console.log("[Spotilyric] Status successfully restored to original.");
         }
     } catch (err) {
         console.warn("[Spotilyric] Failed to restore previous status:", err);
@@ -79,7 +80,7 @@ export async function updateStatus(
         return false;
     }
 
-    const interval = minUpdateIntervalMs ?? 2000;
+    const interval = minUpdateIntervalMs ?? 2500;
     if (now - lastUpdateTime < interval) {
         return false;
     }
@@ -92,6 +93,8 @@ export async function updateStatus(
             console.warn("[Spotilyric] PreloadedUserSettingsActionCreators not ready");
             return false;
         }
+
+        console.log(`[Spotilyric] Updating status on Discord server: "${trimmed}"`);
 
         await actionCreators.updateAsync(
             "status",
