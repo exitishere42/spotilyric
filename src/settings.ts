@@ -2,6 +2,22 @@ import { definePluginSettings } from "@api/Settings";
 import { OptionType } from "@utils/types";
 
 export const settings = definePluginSettings({
+    lyricsSource: {
+        type: OptionType.SELECT,
+        description: "Source for song lyrics",
+        options: [
+            { label: "Auto (Musixmatch + LRCLIB + Netease)", value: "auto", default: true },
+            { label: "Musixmatch (Official lyrics)", value: "musixmatch" },
+            { label: "LRCLIB (Open-source lyrics)", value: "lrclib" },
+            { label: "Netease (Cloud lyrics)", value: "netease" }
+        ]
+    },
+    timingOffsetMs: {
+        type: OptionType.SLIDER,
+        description: "Timing Offset in ms (adjust if lyrics appear too early or too late)",
+        markers: [-2000, -1500, -1000, -500, 0, 500, 1000, 1500, 2000],
+        default: -300
+    },
     restorePreviousStatus: {
         type: OptionType.BOOLEAN,
         description: "Restore previous Discord custom status when music pauses or stops",
@@ -9,7 +25,7 @@ export const settings = definePluginSettings({
     },
     fallbackToTrackInfo: {
         type: OptionType.BOOLEAN,
-        description: "Display 'Song - Artist' if lyrics are not available on LRCLIB",
+        description: "Display 'Song - Artist' if lyrics are not available",
         default: true
     },
     displayFormat: {

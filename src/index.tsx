@@ -26,7 +26,7 @@ async function onSyncTick() {
         return;
     }
 
-    // If song changed, fetch new lyrics from LRCLIB
+    // If song changed, fetch new lyrics
     if (track.trackId !== currentTrackId) {
         currentTrackId = track.trackId;
         console.log(`[Spotilyric] Now playing: ${track.trackName} - ${track.artistName} (Progress: ${Math.round(track.progressMs / 1000)}s)`);
@@ -34,14 +34,18 @@ async function onSyncTick() {
             track.trackName,
             track.artistName,
             track.albumName,
-            track.durationMs
+            track.durationMs,
+            settings.store.lyricsSource ?? "auto"
         );
-        console.log(`[Spotilyric] Lyrics loaded: ${currentLyrics?.lines?.length ?? 0} lines (Synced: ${currentLyrics?.isSynced ?? false})`);
     }
+
+    // Apply user-configured timing offset slider
+    const offsetMs = settings.store.timingOffsetMs ?? 0;
+    const adjustedProgressMs = Math.max(0, track.progressMs + offsetMs);
 
     // Format and update Discord status
     if (currentLyrics && currentLyrics.isSynced && currentLyrics.lines.length > 0) {
-        const activeLine = getActiveLyricLine(currentLyrics.lines, track.progressMs);
+        const activeLine = getActiveLyricLine(currentLyrics.lines, adjustedProgressMs);
         if (activeLine && activeLine.text) {
             const text =
                 settings.store.displayFormat === "title_lyric"
@@ -62,7 +66,7 @@ async function onSyncTick() {
 
 export default definePlugin({
     name: "Spotilyric",
-    description: "Synchronizes your Discord custom status with real-time Spotify lyrics via LRCLIB.",
+    description: "Synchronizes your Discord custom status with real-time Spotify lyrics via Musixmatch and LRCLIB.",
     authors: [
         {
             name: "exit",
