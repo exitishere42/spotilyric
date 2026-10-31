@@ -1,59 +1,61 @@
-import { findByProps, findStore } from "@webpack";
+import { AuthenticationStore, PresenceStore, UserSettingsActionCreators } from "@webpack/common";
 import { PreviousUserStatus } from "./types";
 
 let savedStatus: PreviousUserStatus | null = null;
 let lastUpdatedText = "";
 let lastUpdateTime = 0;
 
-function getUserSettingsProtoUtils(): any {
+export function getCurrentCustomStatus(): PreviousUserStatus | null {
     try {
-        return findByProps("updateCustomStatus");
-    } catch {
-        return null;
+        const myId = AuthenticationStore?.getId?.();
+        if (!myId) return null;
+        const activities = PresenceStore?.getActivities?.(myId);
+        if (!activities) return null;
+        const custom = activities.find((a: any) => a.type === 4); // 4 = ActivityType.CUSTOM_STATUS
+        if (custom) {
+            return {
+                text: custom.state || null,
+                emojiName: custom.emoji?.name || null,
+                emojiId: custom.emoji?.id || null
+            };
+        }
+    } catch (err) {
+        console.warn("[Spotilyric] Failed to get current status:", err);
     }
-}
-
-function getCustomStatusStore(): any {
-    try {
-        return findStore("CustomStatusStore");
-    } catch {
-        return null;
-    }
+    return null;
 }
 
 export function backupCurrentStatus(): void {
     if (savedStatus !== null) return;
-
-    const store = getCustomStatusStore();
-    if (store) {
-        const current = store.getCustomStatus?.();
-        if (current) {
-            savedStatus = {
-                text: current.text || null,
-                emojiName: current.emoji?.name || null,
-                emojiId: current.emoji?.id || null
-            };
-            return;
-        }
-    }
-
-    savedStatus = { text: null, emojiName: null, emojiId: null };
+    const current = getCurrentCustomStatus();
+    savedStatus = current ?? { text: null, emojiName: null, emojiId: null };
 }
 
 export async function restorePreviousStatus(): Promise<void> {
     if (savedStatus === null) return;
 
-    const protoUtils = getUserSettingsProtoUtils();
-    if (protoUtils?.updateCustomStatus) {
-        try {
-            await protoUtils.updateCustomStatus({
-                text: savedStatus.text || "",
-                emojiName: savedStatus.emojiName || "",
-                emojiId: savedStatus.emojiId || ""
-            });
-        } catch (err) {
-            console.warn("[Spotilyric] Failed to restore previous status:", err);
+    try {
+        const actionCreators = UserSettingsActionCreators?.PreloadedUserSettingsActionCreators;
+        if (actionCreators?.updateAsync) {
+            await actionCreators.updateAsync(
+                "status",
+                (status: any) => {
+                    if (!savedStatus?.text) {
+                        status.customStatus = undefined;
+                    } else {
+                        status.customStatus = {
+                            text: savedStatus.text,
+                            emojiName: savedStatus.emojiName || "",
+                            emojiId: savedStatus.emojiId || "",
+                            expiresAtMs: "0"
+                        };
+                    }
+                },
+                0
+            );
         }
+    } catch (err) {
+        console.warn("[Spotilyric] Failed to restore previous status:", err);
     }
 
     savedStatus = null;
@@ -80,17 +82,25 @@ export async function updateStatus(
 
     backupCurrentStatus();
 
-    const protoUtils = getUserSettingsProtoUtils();
-    if (!protoUtils?.updateCustomStatus) {
-        return false;
-    }
-
     try {
-        await protoUtils.updateCustomStatus({
-            text: trimmed,
-            emojiName: statusEmoji || "🎵",
-            emojiId: ""
-        });
+        const actionCreators = UserSettingsActionCreators?.PreloadedUserSettingsActionCreators;
+        if (!actionCreators?.updateAsync) {
+            console.warn("[Spotilyric] PreloadedUserSettingsActionCreators not ready");
+            return false;
+        }
+
+        await actionCreators.updateAsync(
+            "status",
+            (status: any) => {
+                status.customStatus = {
+                    text: trimmed,
+                    emojiName: statusEmoji || "🎵",
+                    emojiId: "",
+                    expiresAtMs: "0"
+                };
+            },
+            0
+        );
 
         lastUpdatedText = trimmed;
         lastUpdateTime = now;
