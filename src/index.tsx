@@ -16,6 +16,7 @@ async function onSyncTick() {
     // If no track is playing on Spotify
     if (!track || !track.isPlaying) {
         if (currentTrackId !== null) {
+            console.log("[Spotilyric] Playback stopped. Restoring status...");
             currentTrackId = null;
             currentLyrics = null;
             if (settings.store.restorePreviousStatus) {
@@ -28,12 +29,14 @@ async function onSyncTick() {
     // If song changed, fetch new lyrics from LRCLIB
     if (track.trackId !== currentTrackId) {
         currentTrackId = track.trackId;
+        console.log(`[Spotilyric] Now playing: ${track.trackName} - ${track.artistName} (Progress: ${Math.round(track.progressMs / 1000)}s)`);
         currentLyrics = await fetchLyrics(
             track.trackName,
             track.artistName,
             track.albumName,
             track.durationMs
         );
+        console.log(`[Spotilyric] Lyrics loaded: ${currentLyrics?.lines?.length ?? 0} lines (Synced: ${currentLyrics?.isSynced ?? false})`);
     }
 
     // Format and update Discord status
